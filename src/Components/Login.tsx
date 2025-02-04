@@ -1,6 +1,9 @@
 import React, { useState } from "react";
-
+import { useNavigate } from "react-router-dom";
+import useAuthStore from "../functions/zustand";
 const LoginPage: React.FC = () => {
+  const navigate = useNavigate()
+  const {setLoginTrue}= useAuthStore()
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -9,9 +12,24 @@ const LoginPage: React.FC = () => {
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
-    // Login logic will be implemented later
+  
+    if (email === "abishek1234khadka@gmail.com" && password === "abishek1234") {
+      let name: string = "Abishek Khadka";
+      let photourl: string =
+        "https://images.unsplash.com/photo-1541516160071-4bb0c5af65ba?fm=jpg&q=60&w=3000&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxzZWFyY2h8Mnx8dGFraW5nJTIwcGhvdG98ZW58MHx8MHx8fDA%3D";
+      
+      // ✅ Call `setLoginTrue` without expecting a return value
+      setLoginTrue(name, photourl);
+  
+      console.log("Login successful, navigating...");
+      navigate("/dashboard");
+    } else {
+      console.log("Invalid credentials");
+    }
+  
     console.log("Login attempt:", email);
   };
+  
 
   const handleForgotPassword = (e: React.FormEvent) => {
     e.preventDefault();

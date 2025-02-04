@@ -1,6 +1,17 @@
-import React from "react";
-
+import React , {useEffect} from "react";
+import { useNavigate } from "react-router-dom";
+import useAuthStore from "../functions/zustand";
 const DocumentEditorLandingPage: React.FC = () => {
+
+  const navigate = useNavigate();
+  const { isLogin } = useAuthStore.getState(); // Access Zustand state directly
+
+  // Check if user is logged in when the component mounts
+  useEffect(() => {
+    if (isLogin) {
+      navigate("/dashboard"); // Redirect to dashboard if logged in
+    }
+  }, [isLogin, navigate]); 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
       {/* Hero Section */}

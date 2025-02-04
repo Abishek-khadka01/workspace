@@ -1,57 +1,66 @@
-// src/components/Navbar.tsx
-
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
+import useAuthStore from "../functions/zustand";
 
 type User = {
+  isLogin: boolean;
   name: string;
   profilePicture: string;
 };
 
-interface NavbarProps {
-  user: User | null;
-  onLogin: () => void;
-  onSignup: () => void;
-  onLogout: () => void;
-  onUpdateDetails: () => void;
-}
+type Userdetails = User | null;
 
-const Navbar: React.FC<NavbarProps> = ({
-  user,
-  onLogin,
-  onSignup,
-  onLogout,
-  onUpdateDetails,
-}) => {
+const Navbar: React.FC = () => {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [user, setUser] = useState<Userdetails>(null);
+
+  useEffect(() => {
+    const { username, url, isLogin } = useAuthStore.getState(); // Access state directly
+    setUser({
+      isLogin: isLogin,
+      name: username,
+      profilePicture: url,
+    });
+  }, []); // Run only once after component mounts
 
   const toggleDropdown = () => {
     setIsDropdownOpen(!isDropdownOpen);
   };
+
+  function onUpdateDetails() {
+    console.log("Update details");
+  }
+
+  function onLogout() {
+    useAuthStore.getState().setLoginFalse(); // Log out by updating Zustand state
+    setUser(null); // Clear user state locally
+    console.log("Logout happened");
+  }
 
   return (
     <nav className="bg-gray-800 text-white p-4">
       <div className="max-w-screen-xl mx-auto flex justify-between items-center">
         {/* Logo / Title */}
         <div className="text-2xl font-semibold">
-          <span>Editor</span>
+          <Link to="/">Editor</Link>
         </div>
 
         {/* Login / Signup or User info */}
         <div className="flex items-center space-x-4">
-          {!user ? (
+          {!user?.isLogin ? (
             <>
-              <button
-                onClick={onLogin}
+              <Link
+                to="/login"
                 className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-md"
               >
                 Login
-              </button>
-              <button
-                onClick={onSignup}
+              </Link>
+              <Link
+                to="/register"
                 className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-md"
               >
                 Signup
-              </button>
+              </Link>
             </>
           ) : (
             <div className="flex items-center space-x-3">

@@ -4,22 +4,25 @@ type Document = {
   id: number;
   title: string;
   updatedAt: string;
-  members: { name: string; profilePicture: string }[]; // Members with name and profile picture
+  members: { name: string; profilePicture: string }[];
 };
 
-interface DocumentListProps {
-  documents: Document[];
-  onEdit: (id: number) => void;
-  onDelete: (id: number) => void;
-}
+const DocumentList: React.FC = () => {
+  const [documents, setDocuments] = useState<Document[]>([
+    {
+      id: 1,
+      title: "hello world",
+      updatedAt: "2020-01-10",
+      members: [
+        {
+          name: "hero",
+          profilePicture: "",
+        },
+      ],
+    },
+  ]);
 
-const DocumentList: React.FC<DocumentListProps> = ({
-  documents,
-  onEdit,
-  onDelete,
-}) => {
-  const [isConfirmDeleteOpen, setIsConfirmDeleteOpen] =
-    useState<boolean>(false);
+  const [isConfirmDeleteOpen, setIsConfirmDeleteOpen] = useState(false);
   const [documentToDelete, setDocumentToDelete] = useState<number | null>(null);
 
   const handleConfirmDelete = (id: number) => {
@@ -34,10 +37,16 @@ const DocumentList: React.FC<DocumentListProps> = ({
 
   const handleDelete = () => {
     if (documentToDelete !== null) {
-      onDelete(documentToDelete); // Call the onDelete prop function with the document ID
+      setDocuments((prevDocs) =>
+        prevDocs.filter((doc) => doc.id !== documentToDelete)
+      );
       setIsConfirmDeleteOpen(false);
       setDocumentToDelete(null);
     }
+  };
+
+  const onEdit = (id: number) => {
+    console.log(`Edit document with ID: ${id}`);
   };
 
   return (
@@ -47,10 +56,8 @@ const DocumentList: React.FC<DocumentListProps> = ({
       ) : (
         documents.map((document) => (
           <div key={document.id} className="bg-white p-4 rounded-lg shadow-md">
-            {/* Document Title and Buttons (Edit, Delete) */}
             <div className="flex items-center justify-between">
               <h2 className="text-xl font-bold">{document.title}</h2>
-              {/* Edit and Delete Buttons on the Right */}
               <div className="flex space-x-2">
                 <button
                   onClick={() => onEdit(document.id)}
@@ -74,11 +81,10 @@ const DocumentList: React.FC<DocumentListProps> = ({
                 {document.members.map((member, index) => (
                   <div key={index} className="relative group text-center">
                     <img
-                      src={member.profilePicture}
+                      src={member.profilePicture || "default-avatar.png"}
                       alt={member.name}
                       className="w-10 h-10 rounded-full border-2 border-white"
                     />
-                    {/* Display name below the image */}
                     <div className="mt-1 opacity-0 group-hover:opacity-100 transition-opacity">
                       <span className="text-xs text-gray-700">
                         {member.name}
@@ -89,10 +95,8 @@ const DocumentList: React.FC<DocumentListProps> = ({
               </div>
             </div>
 
-            {/* Last Updated Section */}
             <div className="mt-2 text-sm text-gray-500">
-              <p>{new Date(document.updatedAt).toLocaleDateString()}</p>{" "}
-              {/* Only show the date */}
+              <p>{new Date(document.updatedAt).toLocaleDateString()}</p>
             </div>
           </div>
         ))
