@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import useAuthStore from "../functions/zustand";
 const LoginPage: React.FC = () => {
@@ -9,6 +9,14 @@ const LoginPage: React.FC = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [showForgotPassword, setShowForgotPassword] = useState(false);
   const [forgotPasswordEmail, setForgotPasswordEmail] = useState("");
+  const {isLogin} = useAuthStore.getState()
+  
+
+  useEffect(()=>{
+    if(isLogin){
+      navigate("/dashboard")
+    }
+  }, [navigate, isLogin])
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();

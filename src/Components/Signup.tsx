@@ -1,14 +1,23 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
+import useAuthStore from "../functions/zustand";
+import { useNavigate } from "react-router-dom";
 
 const RegisterPage: React.FC = () => {
 
-    
+      const navigate = useNavigate()
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const {isLogin } = useAuthStore.getState()
+
+  useEffect(()=>{
+    if(isLogin){
+      navigate("/dashboard")
+    }
+  }, [isLogin, ])
 
   const handleRegister = (e: React.FormEvent) => {
     e.preventDefault();

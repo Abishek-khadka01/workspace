@@ -8,7 +8,7 @@ dist/
 .vite/
 .vitepress/dist/
 *.local
-
+.package-lock-json
 # Editor settings and logs
 .idea/
 .vscode/
