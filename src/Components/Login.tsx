@@ -1,6 +1,9 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import useAuthStore from "../functions/zustand";
+import { UserLoginApi } from "../ApiResponses/User";
+import { AxiosResponse } from "axios";
+
 const LoginPage: React.FC = () => {
   const navigate = useNavigate()
   const {setLoginTrue}= useAuthStore()
@@ -10,6 +13,7 @@ const LoginPage: React.FC = () => {
   const [showForgotPassword, setShowForgotPassword] = useState(false);
   const [forgotPasswordEmail, setForgotPasswordEmail] = useState("");
   const {isLogin} = useAuthStore.getState()
+  const [error,setError] = useState(null)
   
 
   useEffect(()=>{
@@ -18,22 +22,29 @@ const LoginPage: React.FC = () => {
     }
   }, [navigate, isLogin])
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
   
-    if (email === "abishek1234khadka@gmail.com" && password === "abishek1234") {
-      let name: string = "Abishek Khadka";
-      let photourl: string =
-        "https://images.unsplash.com/photo-1541516160071-4bb0c5af65ba?fm=jpg&q=60&w=3000&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxzZWFyY2h8Mnx8dGFraW5nJTIwcGhvdG98ZW58MHx8MHx8fDA%3D";
+    // if (email === "abishek1234khadka@gmail.com" && password === "abishek1234") {
+    //   let name: string = "Abishek Khadka";
+    //   let photourl: string =
+    //     "https://images.unsplash.com/photo-1541516160071-4bb0c5af65ba?fm=jpg&q=60&w=3000&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxzZWFyY2h8Mnx8dGFraW5nJTIwcGhvdG98ZW58MHx8MHx8fDA%3D";
       
       // ✅ Call `setLoginTrue` without expecting a return value
-      setLoginTrue(name, photourl);
-  
-      console.log("Login successful, navigating...");
-      navigate("/dashboard");
-    } else {
-      console.log("Invalid credentials");
+      // setLoginTrue(name, photourl);
+    try {
+      const response = await UserLoginApi(email, password) as AxiosResponse ;
+      console.log(response)
+      
+
+
+      
+      navigate("/dashboard");  
+    } catch (error) {
+      throw Error(error as string)
     }
+    
+    
   
     console.log("Login attempt:", email);
   };
