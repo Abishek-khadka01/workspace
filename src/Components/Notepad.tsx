@@ -1,5 +1,8 @@
-import { useState } from "react";
-
+import { useEffect, useState } from "react";
+import { io } from "socket.io-client";
+import { BACKEND_URL } from "../ApiResponses/User";
+import {  useNavigate } from "react-router-dom";
+import useAuthStore from "../functions/zustand";
 type Member = {
   id: number;
   name: string;
@@ -8,8 +11,12 @@ type Member = {
 };
 
 const NotePad: React.FC = () => {
+
+
+  
+  const navigate = useNavigate()
   const [text, setText] = useState<string>("");
-  const [isNavOpen, setIsNavOpen] = useState<boolean>(true);
+  const [isNavOpen, setIsNavOpen] = useState<boolean>(false);
   const [isDocumentOpen, setIsDocumentOpen] = useState<boolean>(true);
   const [lastEditor, setLastEditor] = useState<Member | null>(null);
   const [typingTimeout, setTypingTimeout] = useState<NodeJS.Timeout | null>(null);
@@ -20,6 +27,30 @@ const NotePad: React.FC = () => {
     { id: 2, name: "Bob", image: "/api/placeholder/40/40", online: false },
     { id: 3, name: "Charlie", image: "/api/placeholder/40/40", online: true },
   ]);
+
+ useEffect(() => {
+    const {isLogin, id} = useAuthStore.getState()
+    if(!isLogin){
+      navigate("/")
+
+    }
+    const pathParts = window.location.pathname.split("/");
+    const fileid = (pathParts[pathParts.length - 1]);
+    console.log(fileid)
+    const socket = io(BACKEND_URL,{
+      
+        auth: {
+          token: id,
+          documentId : fileid 
+        } 
+    ,
+      withCredentials: true,
+    });
+
+    socket.on("connect", () => {
+      console.log(`User is connected , ${socket.id}`);
+    });
+  }, [useAuthStore]);
 
   const currentUser = members[0];
   const onlineMembers = members.filter((member) => member.online);
@@ -60,7 +91,20 @@ const NotePad: React.FC = () => {
 
   return (
     <div className="flex h-screen flex-col">
-      <div className="p-4 bg-gray-200 text-center font-semibold text-lg">{fileName}</div>
+      <div className="p-4 bg-gray-200 text-center font-semibold text-lg relative">
+        {fileName}
+        {!isNavOpen && (
+          <button
+            onClick={() => setIsNavOpen(true)}
+            className="absolute left-4 top-1/2 -translate-y-1/2 p-2 rounded-lg hover:bg-gray-300 transition-colors duration-200 flex items-center gap-2 text-gray-600 hover:text-gray-800"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+            </svg>
+            <span className="text-sm font-medium">Menu</span>
+          </button>
+        )}
+      </div>
       <div className="flex flex-1">
         <div className={`bg-gray-800 text-white ${isNavOpen ? "w-64" : "w-0"} transition-all duration-300 relative`}>
           {isNavOpen && (
@@ -81,16 +125,6 @@ const NotePad: React.FC = () => {
         </div>
 
         <div className="flex-1 flex flex-col p-4">
-          {!isNavOpen && (
-            <button
-              onClick={() => setIsNavOpen(true)}
-              className="absolute top-4 left-4 p-2 bg-gray-300 text-black rounded hover:bg-gray-500 text-white"
-            >
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16m-7 6h7" />
-              </svg>
-            </button>
-          )}
           <div className="flex-1 bg-white rounded-lg shadow-sm border relative">
             <div className="h-full p-4">
               <textarea className="w-full h-full outline-none resize-none" value={text} onChange={handleTextChange} placeholder="Start typing..." />

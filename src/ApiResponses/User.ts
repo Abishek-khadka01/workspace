@@ -1,8 +1,9 @@
 import axios, { AxiosResponse } from "axios";
-import dotenv from "dotenv";
-dotenv.config();
 
+axios.defaults.withCredentials= true
+ export const BACKEND_URL =`http://localhost:3000`
 export type typeUser = {
+    _id: string,
     username: string;
     profilepicture: string;
     password: string;
@@ -14,6 +15,7 @@ export type typeUser = {
 export type ResponseTypeforUser = {
     success: boolean;
     message: string | typeUser;
+    user : typeUser
 };
 
 type UserType = {
@@ -26,29 +28,39 @@ type UserFn = (user: Required<UserType>) => Promise<AxiosResponse<ResponseTypefo
 
 type LoginFn = (email: string, password: string) => Promise<AxiosResponse<ResponseTypeforUser>>;
 
-type AddDocumentFn = (documentName: string, content: string) => Promise<AxiosResponse>;
+
+type ResponseTypeforDocument = {
+    _id : string,
+    name : string
+    owner : string,
+    content : string,
+    members:string[],
+
+}
+
+type AddDocumentFn = (documentName: string, content: string) => Promise<AxiosResponse<ResponseTypeforDocument>>;
 
 export const UserRegisterApi: UserFn = async ({ username, email, password }) => {
-    return await axios.post(`${process.env.BACKEND_URL}/api/v1/register`, {
+    return await axios.post(`${BACKEND_URL}/api/v1/users/register`, {
         username,
         email,
         password
-    });
+    }, );
 };
 
 export const UserLoginApi: LoginFn = async (email, password) => {
-    return await axios.post(`${process.env.BACKEND_URL}/api/v1/login`, {
+    return await axios.post(`${BACKEND_URL}/api/v1/users/login`, {
         email,
         password
     });
 };
 
 export const UserLogOutApi = async (): Promise<AxiosResponse> => {
-    return await axios.post(`${process.env.BACKEND_URL}/api/v1/logout`);
+    return await axios.post(`${BACKEND_URL}/api/v1/users/logout`, );
 };
 
 export const AddDocumentApi: AddDocumentFn = async (documentName, content) => {
-    return await axios.post(`${process.env.BACKEND_URL}/api/v1/documents/create-document`, {
+    return await axios.post(`${BACKEND_URL}/api/v1/documents/create-document`, {
         documentName,
         content
     });

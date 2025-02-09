@@ -1,10 +1,10 @@
 import React, { useEffect, useState } from "react";
 import useAuthStore from "../functions/zustand";
 import { useNavigate } from "react-router-dom";
-
+import { UserRegisterApi } from "../ApiResponses/User";
 const RegisterPage: React.FC = () => {
 
-      const navigate = useNavigate()
+    const navigate = useNavigate()
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -17,19 +17,37 @@ const RegisterPage: React.FC = () => {
     if(isLogin){
       navigate("/dashboard")
     }
-  }, [isLogin, ])
+  }, [isLogin])
 
-  const handleRegister = (e: React.FormEvent) => {
+  const handleRegister =  async (e: React.FormEvent) => {
     e.preventDefault();
     // Validation logic
     if (password !== confirmPassword) {
       alert("Passwords do not match");
       return;
     }
+      try {
+        const response = await UserRegisterApi({username, email, password})
+        if(response.status==200){
+          console.log(`User created`)
+          
+          
+          navigate("/login")
+        }else{
+          alert(response.data.message)
+        }  
+      } catch (error) {
+          alert(error)
+      }
+      
+
+
 
     // Registration logic will be implemented later
     console.log("Registration attempt:", { username, email });
   };
+
+
 
   const togglePasswordVisibility = (field: "password" | "confirm") => {
     if (field === "password") {

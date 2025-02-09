@@ -1,3 +1,4 @@
+
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
@@ -5,23 +6,27 @@ type AuthState = {
   isLogin: boolean;
   username: string;
   url: string;
-  setLoginTrue: (username: string, url: string) => void;
+  id:null | string
+  setLoginTrue: (username: string, url: string, id: string) => void;
   setLoginFalse: () => void;
   getDatas: () => AuthState;
 };
+
 
 const useAuthStore = create<AuthState>()(
   persist(
     (set, get) => ({
       isLogin: false,
+      id:null,
       username: "",
       url: "",
 
-      setLoginTrue: (username: string, url: string) => {
+      setLoginTrue: (username: string, profilePicture: string, id: string) => {
         set({
           isLogin: true,
           username,
-          url,
+          url: profilePicture,
+          id
         });
       },
 
@@ -30,6 +35,7 @@ const useAuthStore = create<AuthState>()(
           isLogin: false,
           username: "",
           url: "",
+          id:null,
         });
       },
 
@@ -40,5 +46,8 @@ const useAuthStore = create<AuthState>()(
     }
   )
 );
+
+
+
 
 export default useAuthStore;
