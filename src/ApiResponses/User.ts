@@ -29,17 +29,25 @@ type UserFn = (user: Required<UserType>) => Promise<AxiosResponse<ResponseTypefo
 type LoginFn = (email: string, password: string) => Promise<AxiosResponse<ResponseTypeforUser>>;
 
 
-type ResponseTypeforDocument = {
+type TypeDocument = {
     _id : string,
     name : string
     owner : string,
     content : string,
-    members:string[],
+    members:typeUser[] | string[],
+    updatedAt : Date
 
 }
 
-type AddDocumentFn = (documentName: string, content: string) => Promise<AxiosResponse<ResponseTypeforDocument>>;
+type ResponseTypeForDocument = {
+    success : boolean,
+    message : string,
+    documents : TypeDocument
+}
+type AddDocumentFn = (documentName: string, content: string) => Promise<AxiosResponse<ResponseTypeForDocument>>;
 
+
+type FindDocumentFn = ()=>Promise<AxiosResponse<ResponseTypeForDocument>>
 export const UserRegisterApi: UserFn = async ({ username, email, password }) => {
     return await axios.post(`${BACKEND_URL}/api/v1/users/register`, {
         username,
@@ -65,3 +73,8 @@ export const AddDocumentApi: AddDocumentFn = async (documentName, content) => {
         content
     });
 };
+
+
+export const FindDocumentCreatedByUser : FindDocumentFn= async ()=>{
+    return await axios.get(`${BACKEND_URL}/api/v1/documents/find`)
+}

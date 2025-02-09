@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+import React, { useState , useEffect} from "react";
+import { FindDocumentCreatedByUser } from "../ApiResponses/User";
 
 type Document = {
   id: number;
@@ -27,6 +28,9 @@ const DocumentList: React.FC = () => {
     },
   ]);
 
+
+
+
   const [isConfirmDeleteOpen, setIsConfirmDeleteOpen] = useState(false);
   const [documentToDelete, setDocumentToDelete] = useState<number | null>(null);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
@@ -37,7 +41,7 @@ const DocumentList: React.FC = () => {
   const handleConfirmDelete = (id: number) => {
     setDocumentToDelete(id);
     setIsConfirmDeleteOpen(true);
-  };
+  }
 
   const handleCancelDelete = () => {
     setIsConfirmDeleteOpen(false);
