@@ -28,10 +28,6 @@ const DocumentList: React.FC = () => {
     },
   ]);
 
-  
- 
-
-
   const [isConfirmDeleteOpen, setIsConfirmDeleteOpen] = useState(false);
   const [documentToDelete, setDocumentToDelete] = useState<number | null>(null);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
@@ -42,7 +38,7 @@ const DocumentList: React.FC = () => {
   const handleConfirmDelete = (id: number) => {
     setDocumentToDelete(id);
     setIsConfirmDeleteOpen(true);
-  };
+  }
 
   const handleCancelDelete = () => {
     setIsConfirmDeleteOpen(false);
