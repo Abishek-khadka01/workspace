@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import useAuthStore from "../functions/zustand";
-import { UserLoginApi } from "../ApiResponses/User";
+
 
 
 const LoginPage: React.FC = () => {
@@ -24,21 +24,15 @@ const LoginPage: React.FC = () => {
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    try {
-      const response = await UserLoginApi(email,password)
-      if(response.status==200){
-        
-          const {_id, username, profilepicture} = response.data.user
-          setLoginTrue(username,profilepicture,_id.toString())
+    
+        if(email =="abishek1234khadka@gmail.com " && password=="abishek12345"){
           navigate("/dashboard")
 
       }else{
-        alert(response.data.message)
+        navigate("/")
       }
 
-    } catch (error) {
-      alert(error)
-    }
+    
    
 }
 

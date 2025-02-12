@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import useAuthStore from "../functions/zustand";
 import { useNavigate } from "react-router-dom";
-import { UserRegisterApi } from "../ApiResponses/User";
+
 const RegisterPage: React.FC = () => {
 
     const navigate = useNavigate()
@@ -26,19 +26,7 @@ const RegisterPage: React.FC = () => {
       alert("Passwords do not match");
       return;
     }
-      try {
-        const response = await UserRegisterApi({username, email, password})
-        if(response.status==200){
-          console.log(`User created`)
-          
-          
-          navigate("/login")
-        }else{
-          alert(response.data.message)
-        }  
-      } catch (error) {
-          alert(error)
-      }
+      
       
 
 

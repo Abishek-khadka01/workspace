@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import useAuthStore from "../functions/zustand";
-import { UserLogOutApi } from "../ApiResponses/User";
+
 
 type User = {
   isLogin: boolean;
@@ -35,22 +35,7 @@ const Navbar: React.FC = () => {
   }
 
   async function onLogout() {
-    try {
-      const response = await UserLogOutApi();
-      if (response.status == 200) {
-        useAuthStore.getState().setLoginFalse();
-        setUser(null);
-        console.log("Logout happened");
-        
-
-      }else{
-        alert(response.data.message)
-      }
-      
-      
-    } catch (error) {
-      alert(error);
-    }
+    alert("Logout")
   }
 
   // Close dropdown when clicking outside
