@@ -1,12 +1,14 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import useAuthStore from "../functions/zustand";
+import { UserLogin } from "../Api/apicall";
 
 
 
 const LoginPage: React.FC = () => {
   const navigate = useNavigate()
   const {setLoginTrue}= useAuthStore()
+  
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -24,13 +26,21 @@ const LoginPage: React.FC = () => {
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-        if(email =="abishek1234khadka@gmail.com " && password=="abishek12345"){
-          navigate("/dashboard")
-
-      }else{
-        navigate("/")
+      try {
+        const responseUserLogin = await UserLogin(email, password)
+        if(!responseUserLogin.data.success){
+          alert(responseUserLogin.data.message)
+        }
+        console.log(responseUserLogin.data.user)
+        const {username , profilepicture, _id} = responseUserLogin.data.user
+        setLoginTrue(username, profilepicture, _id)
+        navigate("/dashboard")
+        
+      } catch (error) {
+        console.log(error)
+        alert(error)
       }
+       
 
     
    

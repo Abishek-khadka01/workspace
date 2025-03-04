@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import useAuthStore from "../functions/zustand";
 import { useNavigate } from "react-router-dom";
+import { UserRegister } from "../Api/apicall";
 
 const RegisterPage: React.FC = () => {
 
@@ -26,9 +27,15 @@ const RegisterPage: React.FC = () => {
       alert("Passwords do not match");
       return;
     }
-      
-      
+       
+      const response = await UserRegister(username, email, password)
 
+        if(!response.data.success){
+          alert(response.data.message)
+        }
+        console.log(response.data.message)
+        alert(`User is registered`)
+        navigate("/login")
 
 
     // Registration logic will be implemented later

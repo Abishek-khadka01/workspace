@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import useAuthStore from "../functions/zustand";
-
+import { UserLogOut } from "../Api/apicall.js";
+import { useNavigate } from "react-router-dom";
 
 type User = {
   isLogin: boolean;
@@ -12,9 +13,10 @@ type User = {
 type Userdetails = User | null;
 
 const Navbar: React.FC = () => {
+  const {setLoginFalse} = useAuthStore()
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [user, setUser] = useState<Userdetails>(null);
-  
+    const navigate = useNavigate()
   useEffect(() => {
     const { username, url, isLogin } = useAuthStore.getState();
     console.log(useAuthStore.getState().getDatas())
@@ -35,7 +37,20 @@ const Navbar: React.FC = () => {
   }
 
   async function onLogout() {
-    alert("Logout")
+    const response = await UserLogOut()
+    if(!response.data.success){
+      alert(`Failed in the logout User`)
+      console.log(response.data.message)
+      
+
+    }else{
+      alert("Logout")
+      setLoginFalse()
+      navigate("/")
+      
+
+    }
+    
   }
 
   // Close dropdown when clicking outside
