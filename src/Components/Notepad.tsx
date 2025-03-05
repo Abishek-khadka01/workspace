@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import useAuthStore from "../functions/zustand";
-
+import { SocketSingleton } from "../sockets/socket";
 
 type Member = {
   id: string;
@@ -55,7 +55,6 @@ const JoinRequestNotification: React.FC<{
 };
 
 const NotePad: React.FC = () => {
-  const navigate = useNavigate();
   const [text, setText] = useState<string>("");
   const [isNavOpen, setIsNavOpen] = useState<boolean>(false);
   const [isDocumentOpen, setIsDocumentOpen] = useState<boolean>(true);
@@ -63,19 +62,43 @@ const NotePad: React.FC = () => {
   const [typingTimeout, setTypingTimeout] = useState<NodeJS.Timeout | null>(null);
   const [fileName, setFileName] = useState<string>("Untitled Document");
   const [joinRequest, setJoinRequest] = useState<JoinRequest | null>(null);
+  const { id } = useAuthStore.getState();
+  const documentID = useParams().id;
+  const navigate = useNavigate();
 
-  const [members, setMembers] = useState<Member[]>([
-    { id: "1", name: "Alice", image: "/api/placeholder/40/40", online: true },
-    { id: '2', name: "Bob", image: "/api/placeholder/40/40", online: false },
-    { id: '3', name: "Charlie", image: "/api/placeholder/40/40", online: true },
-  ]);
+  const [members, setMembers] = useState<Member[]>([]); // Initially empty members list
 
-  
+  const UserSocket = SocketSingleton.TheInstance();
 
+  // Update members from server when socket connects
+  useEffect(() => {
+    if (!UserSocket) return;
 
-  const currentUser = members[0];
-  const onlineMembers = members.filter((member) => member.online);
+    // Event listener to update members when joined or left
+    UserSocket.on("update-members", (updatedMembers: Member[]) => {
+      setMembers(updatedMembers);
+    });
 
+    // Listen for join request
+    UserSocket.on("join-request", (request: JoinRequest) => {
+      setJoinRequest(request);
+    });
+
+    // Handle document closure
+    UserSocket.on("end-document", (message: string) => {
+      alert(message);
+      navigate("/dashboard");
+    });
+
+    // Cleanup socket listeners on unmount
+    return () => {
+      UserSocket.off("update-members");
+      UserSocket.off("join-request");
+      UserSocket.off("end-document");
+    };
+  }, [UserSocket, navigate]);
+
+  // Send text updates to the server
   const handleTextChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const newText = e.target.value;
     setText(newText);
@@ -85,47 +108,44 @@ const NotePad: React.FC = () => {
     }
 
     const newTimeout = setTimeout(() => {
-      // Placeholder: Use your socket or API call for updating the text
-      // socket.emit("text_update", { text: newText, timestamp: new Date().toISOString() });
-      setLastEditor(currentUser);
+      UserSocket?.emit("text_update", { text: newText, documentId: documentID });
+      setLastEditor({ id: id || "default-id", name: "Current User", image: "/api/placeholder/40/40", online: true }); // Replace with dynamic current user
     }, 1000);
 
     setTypingTimeout(newTimeout);
   };
 
   const handleAcceptJoinRequest = () => {
-    // Placeholder: Handle accepting join request logic here
-    // socket.emit("accept_join_request", { userId: joinRequest.userId, documentId: "some-document-id" });
-    
-    // setMembers(prev => [...prev, {
-    //   id: joinRequest?.userId || "12305404",
-    //   name: joinRequest?.username || "Abishek khadka",
-    //   image: joinRequest?.profilePicture ,
-    //   online: true
-    // }]);
-
-    setJoinRequest(null);
+    if (joinRequest) {
+      UserSocket?.emit("accept_join_request", {
+        userId: joinRequest.userId,
+        documentId: documentID,
+      });
+      setJoinRequest(null);
+    }
   };
 
   const handleRejectJoinRequest = () => {
-    // Placeholder: Handle rejecting join request logic here
-    // socket.emit("reject_join_request", { userId: joinRequest.userId, documentId: "some-document-id" });
-    
-    setJoinRequest(null);
+    if (joinRequest) {
+      UserSocket?.emit("reject_join_request", {
+        userId: joinRequest.userId,
+        documentId: documentID,
+      });
+      setJoinRequest(null);
+    }
   };
 
   const handleCloseDocument = () => {
     if (text.trim() !== "" && window.confirm("Do you want to save before closing?")) {
-      // Placeholder: Handle saving document logic here
-      // socket.emit("save_document", { text, fileName });
+      // Save logic can go here
+      UserSocket?.emit("save_document", { text, fileName, documentId: documentID });
       alert("Saving file...");
     }
     setIsDocumentOpen(false);
   };
 
   const handleSaveFile = () => {
-    // Placeholder: Handle saving file logic here
-    // socket.emit("save_document", { text, fileName });
+    UserSocket?.emit("save_document", { text, fileName, documentId: documentID });
     alert("Saving file...");
   };
 
@@ -133,8 +153,7 @@ const NotePad: React.FC = () => {
     const newName = prompt("Enter new filename:", fileName);
     if (newName) {
       setFileName(newName);
-      // Placeholder: Handle renaming file logic here
-      // socket.emit("rename_document", { fileName: newName });
+      UserSocket?.emit("rename_document", { fileName: newName, documentId: documentID });
     }
   };
 
@@ -232,7 +251,7 @@ const NotePad: React.FC = () => {
             </div>
           </div>
           <div className="flex gap-2 mt-2 items-center">
-            {onlineMembers.map((member) => (
+            {members.map((member) => (
               <div key={member.id} className="relative group">
                 <div className="w-10 h-10 rounded-full overflow-hidden">
                   <img 

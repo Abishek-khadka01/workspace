@@ -9,9 +9,9 @@ export class SocketSingleton {
 
   static getInstance(token  :string , documentID : string) {
     if (!SocketSingleton.instance) {
-      SocketSingleton.instance = io(import.meta.env.VITE_SOCKET_API, {
+      SocketSingleton.instance = io("http://localhost:4000", {
         auth: {
-          token,
+          userID : token,
         },
         query:{
             documentID
@@ -25,6 +25,10 @@ export class SocketSingleton {
     return SocketSingleton.isActive;
   }
 
+
+  static TheInstance (){
+    return SocketSingleton.instance
+  }
   static active() {
     SocketSingleton.isActive = true;
   }
