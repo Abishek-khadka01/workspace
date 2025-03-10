@@ -3,6 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import useAuthStore from "../functions/zustand";
 import { SocketSingleton } from "../sockets/socket";
 
+
 type Member = {
   id: string;
   name: string;
@@ -66,14 +67,26 @@ const NotePad: React.FC = () => {
   const documentID = useParams().id;
   const navigate = useNavigate();
 
-  const [members, setMembers] = useState<Member[]>([]); // Initially empty members list
-
-  const UserSocket = SocketSingleton.TheInstance();
+  const [members, setMembers] = useState<Member[]>([]); // Initially empty members array
+     SocketSingleton.connectSocket(id as string , documentID as string )
+  const UserSocket =  SocketSingleton.TheInstance()
+  
+  console.log(UserSocket)
 
   // Update members from server when socket connects
   useEffect(() => {
     if (!UserSocket) return;
+    console.log(`User is running `)
 
+      UserSocket.on("connect", ()=>{
+        console.log(`The user is connected successfully ` ,UserSocket.id)
+      })
+
+      UserSocket.on("update-text-event", ({from , message, documentID})=>{
+        console.log(`The update-text-event is called by $${from}`)
+        setText(message)
+        
+      })
     // Event listener to update members when joined or left
     UserSocket.on("update-members", (updatedMembers: Member[]) => {
       setMembers(updatedMembers);
@@ -85,7 +98,9 @@ const NotePad: React.FC = () => {
     });
 
     // Handle document closure
-    UserSocket.on("end-document", (message: string) => {
+    UserSocket.on("endDocument", (message: string) => {
+      console.log(message)
+      console.log(`User socket running`)
       alert(message);
       navigate("/dashboard");
     });
@@ -94,21 +109,28 @@ const NotePad: React.FC = () => {
     return () => {
       UserSocket.off("update-members");
       UserSocket.off("join-request");
-      UserSocket.off("end-document");
+      UserSocket.off("endDocument");
     };
-  }, [UserSocket, navigate]);
+  }, [SocketSingleton, navigate]);
 
+
+    
   // Send text updates to the server
   const handleTextChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const newText = e.target.value;
     setText(newText);
-
+    setTimeout(() => {
+      UserSocket?.emit("update-text", {from : id,
+        message : text,
+        documentId: documentID
+      })
+    }, 2000)
     if (typingTimeout) {
       clearTimeout(typingTimeout);
     }
 
     const newTimeout = setTimeout(() => {
-      UserSocket?.emit("text_update", { text: newText, documentId: documentID });
+      // UserSocket?.emit("text_update", { text: newText, documentId: documentID });
       setLastEditor({ id: id || "default-id", name: "Current User", image: "/api/placeholder/40/40", online: true }); // Replace with dynamic current user
     }, 1000);
 
@@ -138,8 +160,8 @@ const NotePad: React.FC = () => {
   const handleCloseDocument = () => {
     if (text.trim() !== "" && window.confirm("Do you want to save before closing?")) {
       // Save logic can go here
-      UserSocket?.emit("save_document", { text, fileName, documentId: documentID });
-      alert("Saving file...");
+      // UserSocket?.emit("save_document", { text, fileName, documentId: documentID });
+      // alert("Saving file...");
     }
     setIsDocumentOpen(false);
   };

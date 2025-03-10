@@ -8,16 +8,21 @@ export class SocketSingleton {
   private constructor() {}
 
   static getInstance(token  :string , documentID : string) {
-    if (!SocketSingleton.instance) {
+    if (!SocketSingleton.instance ) {
       SocketSingleton.instance = io("http://localhost:4000", {
         auth: {
           userID : token,
         },
         query:{
             documentID
-        }
-      });
+        },
+        transports: ["websocket", "polling"],
+        
+      }
+      );
+      SocketSingleton.active();
     }
+    
     return SocketSingleton.instance;
   }
 
