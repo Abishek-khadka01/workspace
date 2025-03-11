@@ -10,6 +10,7 @@ type AuthState = {
   setLoginTrue: (username: string, url: string, id: string) => void;
   setLoginFalse: () => void;
   getDatas: () => AuthState;
+  updateDetails : (username : string , url : string)=>void
 };
 
 
@@ -37,6 +38,13 @@ const useAuthStore = create<AuthState>()(
           url: "",
           id:null,
         });
+      },
+
+      updateDetails: (username: string , url: string )=>{
+        set({
+          username,
+          url,
+        })
       },
 
       getDatas: () => get(),

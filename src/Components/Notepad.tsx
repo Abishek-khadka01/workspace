@@ -1,14 +1,14 @@
-import { useEffect, useState } from "react";
+import { KeyboardEventHandler, useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import useAuthStore from "../functions/zustand";
 import { SocketSingleton } from "../sockets/socket";
-
-
+import { DocumentContentUpdate, FindDocumentByid } from "../Api/Documents";
+import {  TypeMembers } from "../types/document.types";
 type Member = {
   id: string;
   name: string;
   image: string;
-  online: boolean;
+  online: boolean
 };
 
 type JoinRequest = {
@@ -26,9 +26,9 @@ const JoinRequestNotification: React.FC<{
   return (
     <div className="fixed bottom-4 right-4 bg-white rounded-lg shadow-lg p-4 flex items-center gap-4 border border-gray-200 animate-slide-up z-50">
       <div className="flex-shrink-0">
-        <img 
-          src={request.profilePicture} 
-          alt={request.username} 
+        <img
+          src={request.profilePicture}
+          alt={request.username}
           className="w-12 h-12 rounded-full object-cover"
         />
       </div>
@@ -63,30 +63,40 @@ const NotePad: React.FC = () => {
   const [typingTimeout, setTypingTimeout] = useState<NodeJS.Timeout | null>(null);
   const [fileName, setFileName] = useState<string>("Untitled Document");
   const [joinRequest, setJoinRequest] = useState<JoinRequest | null>(null);
-  const { id } = useAuthStore.getState();
-  const documentID = useParams().id;
+  const { id: userId } = useAuthStore.getState(); // Assuming this gets the current user's ID
+  const { id: idDocument } = useParams(); // Get document ID from URL params
   const navigate = useNavigate();
+  const {url } = useAuthStore()
 
   const [members, setMembers] = useState<Member[]>([]); // Initially empty members array
-     SocketSingleton.connectSocket(id as string , documentID as string )
-  const UserSocket =  SocketSingleton.TheInstance()
-  
-  console.log(UserSocket)
+    
+  const UserSocket = SocketSingleton.TheInstance();
 
   // Update members from server when socket connects
   useEffect(() => {
     if (!UserSocket) return;
-    console.log(`User is running `)
 
-      UserSocket.on("connect", ()=>{
-        console.log(`The user is connected successfully ` ,UserSocket.id)
-      })
+    console.log(`User is running `);
 
-      UserSocket.on("update-text-event", ({from , message, documentID})=>{
-        console.log(`The update-text-event is called by $${from}`)
-        setText(message)
-        
-      })
+    UserSocket.on("connect", () => {
+      console.log(`The user is connected successfully `, UserSocket.id);
+    });
+
+    UserSocket.on("update-text-event", ({ id , from, message, DocumentID, profile, name }) => {
+      console.log(DocumentID===idDocument , DocumentID, idDocument,"fjghjfjgh")
+      if(DocumentID===idDocument) {
+        console.log(`The update-text-event is called by $${from}`);
+        setText(message);
+        setLastEditor({
+          id,
+          name,
+          image: profile,
+          online : true
+
+        })
+      }
+    });
+
     // Event listener to update members when joined or left
     UserSocket.on("update-members", (updatedMembers: Member[]) => {
       setMembers(updatedMembers);
@@ -99,11 +109,12 @@ const NotePad: React.FC = () => {
 
     // Handle document closure
     UserSocket.on("endDocument", (message: string) => {
-      console.log(message)
-      console.log(`User socket running`)
+      console.log(message);
       alert(message);
       navigate("/dashboard");
     });
+
+
 
     // Cleanup socket listeners on unmount
     return () => {
@@ -111,27 +122,81 @@ const NotePad: React.FC = () => {
       UserSocket.off("join-request");
       UserSocket.off("endDocument");
     };
-  }, [SocketSingleton, navigate]);
+  }, [UserSocket, navigate]);
+
+  useEffect(() => {
+    (async () => 
+     await HandleInitialCall())();
+  }, [idDocument, userId]);
 
 
-    
+  
+  const HandleInitialCall = async ()=>{
+    try {
+      if (!idDocument) {
+        console.error("Document ID is missing in the URL.");
+        return;
+      }
+
+      const documentDetails = await FindDocumentByid(idDocument);
+      if (!documentDetails.data.success) {
+        console.log("Error in finding the document details");
+        console.error(documentDetails.data.message);
+      } else {
+        
+        console.table(documentDetails.data.message)
+        setFileName(documentDetails.data.message.name);
+        setText(documentDetails.data.message.content);
+        SocketSingleton.connectSocket(userId as string, idDocument); // Pass both userId and idDocument
+        const OnlineMembers = documentDetails.data.message.members.map((docs: TypeMembers)=>{
+           
+          return {id : docs._id,
+            name : docs.username,
+            image : docs.profilepicture,
+            online : true
+          }
+
+        })
+        setMembers(OnlineMembers)
+        
+      }
+
+
+
+    } catch (error) {
+      console.log(error)
+      alert(error)
+    }
+
+
+  }
+ 
+  
+
+  
+
+
   // Send text updates to the server
   const handleTextChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const newText = e.target.value;
+    console.log(idDocument)
     setText(newText);
     setTimeout(() => {
-      UserSocket?.emit("update-text", {from : id,
-        message : text,
-        documentId: documentID
-      })
-    }, 2000)
+      UserSocket?.emit("update-text", {
+        from: userId,
+        message: newText,
+        DocumentID : idDocument,
+      });
+    }, 2000);
+
+    
+
     if (typingTimeout) {
       clearTimeout(typingTimeout);
     }
 
     const newTimeout = setTimeout(() => {
-      // UserSocket?.emit("text_update", { text: newText, documentId: documentID });
-      setLastEditor({ id: id || "default-id", name: "Current User", image: "/api/placeholder/40/40", online: true }); // Replace with dynamic current user
+      setLastEditor({ id: userId as string, name: "me" , image: url, online: true });
     }, 1000);
 
     setTypingTimeout(newTimeout);
@@ -141,7 +206,7 @@ const NotePad: React.FC = () => {
     if (joinRequest) {
       UserSocket?.emit("accept_join_request", {
         userId: joinRequest.userId,
-        documentId: documentID,
+        documentID: idDocument,
       });
       setJoinRequest(null);
     }
@@ -151,7 +216,7 @@ const NotePad: React.FC = () => {
     if (joinRequest) {
       UserSocket?.emit("reject_join_request", {
         userId: joinRequest.userId,
-        documentId: documentID,
+        documentID: idDocument,
       });
       setJoinRequest(null);
     }
@@ -160,24 +225,42 @@ const NotePad: React.FC = () => {
   const handleCloseDocument = () => {
     if (text.trim() !== "" && window.confirm("Do you want to save before closing?")) {
       // Save logic can go here
-      // UserSocket?.emit("save_document", { text, fileName, documentId: documentID });
+      // UserSocket?.emit("save_document", { text, fileName, idDocument: idDocument });
       // alert("Saving file...");
     }
     setIsDocumentOpen(false);
   };
 
-  const handleSaveFile = () => {
-    UserSocket?.emit("save_document", { text, fileName, documentId: documentID });
-    alert("Saving file...");
+  const handleSaveFile = async () => {
+   
+    await SaveDocument()
+    alert(`File details is saved `)
   };
 
   const handleRenameFile = () => {
     const newName = prompt("Enter new filename:", fileName);
     if (newName) {
       setFileName(newName);
-      UserSocket?.emit("rename_document", { fileName: newName, documentId: documentID });
+      UserSocket?.emit("rename_document", { fileName: newName, idDocument: idDocument });
     }
   };
+
+  const SaveDocument= async ()=>{
+    
+       try {
+        console.log(idDocument, text)
+        const response = await DocumentContentUpdate(idDocument as string , text)
+        if(!response.data.success){
+        alert(`Updated the document and saved `)
+        }else{
+          console.log(`Error in saving the file`)
+          alert(`Error in saving the file `)
+        }
+       } catch (error) {
+        console.log(error)
+       }
+    ``
+  }
 
   if (!isDocumentOpen) {
     return (
@@ -215,8 +298,8 @@ const NotePad: React.FC = () => {
         <div className={`bg-gray-800 text-white ${isNavOpen ? "w-64" : "w-0"} transition-all duration-300 relative`}>
           {isNavOpen && (
             <>
-              <button 
-                onClick={() => setIsNavOpen(false)} 
+              <button
+                onClick={() => setIsNavOpen(false)}
                 className="absolute top-4 right-4 text-gray-400 hover:text-white"
               >
                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -224,20 +307,20 @@ const NotePad: React.FC = () => {
                 </svg>
               </button>
               <div className="p-4 mt-12">
-                <button 
-                  className="w-full text-left px-4 py-2 rounded hover:bg-gray-700 mb-2" 
+                <button
+                  className="w-full text-left px-4 py-2 rounded hover:bg-gray-700 mb-2"
                   onClick={handleSaveFile}
                 >
                   Save File
                 </button>
-                <button 
-                  className="w-full text-left px-4 py-2 rounded hover:bg-gray-700 mb-2" 
+                <button
+                  className="w-full text-left px-4 py-2 rounded hover:bg-gray-700 mb-2"
                   onClick={handleRenameFile}
                 >
                   Rename File
                 </button>
-                <button 
-                  className="w-full text-left px-4 py-2 rounded hover:bg-gray-700 text-red-300 hover:text-red-200" 
+                <button
+                  className="w-full text-left px-4 py-2 rounded hover:bg-gray-700 text-red-300 hover:text-red-200"
                   onClick={handleCloseDocument}
                 >
                   Close File
@@ -250,19 +333,20 @@ const NotePad: React.FC = () => {
         <div className="flex-1 flex flex-col p-4">
           <div className="flex-1 bg-white rounded-lg shadow-sm border relative">
             <div className="h-full p-4">
-              <textarea 
-                className="w-full h-full outline-none resize-none" 
-                value={text} 
-                onChange={handleTextChange} 
-                placeholder="Start typing..." 
+              <textarea
+                className="w-full h-full outline-none resize-none"
+                value={text}
+                onChange={handleTextChange}
+                
+                placeholder="Start typing..."
               />
               {lastEditor && (
                 <div className="absolute bottom-4 right-4 group">
                   <div className="w-8 h-8 rounded-full overflow-hidden border-2 border-blue-500">
-                    <img 
-                      src={lastEditor.image} 
-                      alt={lastEditor.name} 
-                      className="w-full h-full object-cover" 
+                    <img
+                      src={lastEditor.image}
+                      alt={lastEditor.name}
+                      className="w-full h-full object-cover"
                     />
                   </div>
                   <div className="absolute bottom-full right-0 mb-2 bg-gray-800 text-white text-xs rounded px-2 py-1 opacity-0 group-hover:opacity-100">
@@ -276,10 +360,10 @@ const NotePad: React.FC = () => {
             {members.map((member) => (
               <div key={member.id} className="relative group">
                 <div className="w-10 h-10 rounded-full overflow-hidden">
-                  <img 
-                    src={member.image} 
-                    alt={member.name} 
-                    className="w-full h-full object-cover" 
+                  <img
+                    src={member.image}
+                    alt={member.name}
+                    className="w-full h-full object-cover"
                   />
                 </div>
                 <div className="absolute bottom-full mb-1 left-1/2 transform -translate-x-1/2 bg-gray-700 text-white text-xs rounded px-2 py-1 opacity-0 group-hover:opacity-100">

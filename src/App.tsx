@@ -34,13 +34,13 @@ const App = () => {
         <Route path="/register" element={<RegisterPage />} />
         <Route path="*" element={<ErrorPage />} />
         <Route path="/document/:id" element={<NotePad/>}></Route>
-        <Route path="/user/:id" element={<UserProfile/>}></Route>
+        
       </Route>
 
       {/* ✅ Dashboard Route (Wrapper must contain Outlet inside it) */}
       <Route path="/dashboard" element={<Wrapper />}>
         <Route index element={<DocumentList />} />
-
+        <Route path="/dashboard/user-details" element={<UserProfile/>}></Route>
       </Route>
       
 

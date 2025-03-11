@@ -30,5 +30,28 @@ const UserLogOut = async ()=>{
 }
 
 
+const FindUser = async ()=>{
+    return await axios.get(`${BACKEND_URL}/users/profile-details`, {
+        withCredentials : true
+    })
+}
 
-export {UserRegister, UserLogin, UserLogOut}
+
+const UpdateProfile = (filepath : File)=>{
+    console.log(filepath)
+    const newForm : FormData= new FormData()
+    newForm.append("profile",filepath)
+    return axios.post(`${BACKEND_URL}/users/add-profile`, newForm, {
+        headers:{
+            "Content-Type":"multipart/form-data"
+        },
+        withCredentials: true
+    })
+
+
+
+}
+
+
+
+export {UserRegister, UserLogin, UserLogOut, FindUser, UpdateProfile}

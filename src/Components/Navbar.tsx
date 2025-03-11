@@ -33,7 +33,8 @@ const Navbar: React.FC = () => {
   };
 
   function onUpdateDetails() {
-    console.log("Update details");
+    console.log(`Update details clicked `)
+    navigate("/dashboard/user-details")
   }
 
   async function onLogout() {

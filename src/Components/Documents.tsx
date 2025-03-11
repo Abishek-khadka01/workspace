@@ -1,8 +1,12 @@
-import React, {  useState } from "react";
+import React, { useEffect, useState } from "react";
+import { AllDocumentsApi, CreateDocumentApi } from "../Api/Documents";
+import useAuthStore from "../functions/zustand";
+import { DocumentTypeFromS } from "../types/document.types";
+import { useNavigate } from "react-router-dom";
 
 
 type Document = {
-  id: number;
+  id: number | string;
   title: string;
   updatedAt: string;
   members: { name: string; profilePicture: string }[];
@@ -14,35 +18,62 @@ type NewMember = {
 };
 
 const DocumentList: React.FC = () => {
-  const [documents, setDocuments] = useState<Document[]>([
-    {
-      id: 1,
-      title: "hello world",
-      updatedAt: "2020-01-10",
-      members: [
-        {
-          name: "hero",
-          profilePicture: "",
-        },
-      ],
-    },
-  ]);
-
-  
- 
-
-
+  const [documents, setDocuments] = useState<Document[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [isConfirmDeleteOpen, setIsConfirmDeleteOpen] = useState(false);
-  const [documentToDelete, setDocumentToDelete] = useState<number | null>(null);
+  const [documentToDelete, setDocumentToDelete] = useState<number | string | null>(null);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [newDocumentTitle, setNewDocumentTitle] = useState("");
   const [newMembers, setNewMembers] = useState<NewMember[]>([]);
   const [newMemberName, setNewMemberName] = useState("");
+  // navigate
 
-  const handleConfirmDelete = (id: number) => {
+  const navigate = useNavigate()
+  // Use the store directly as a hook
+  const { username, url } = useAuthStore();
+
+  // Fetch all documents when component mounts
+  useEffect(() => {
+    fetchAllDocuments();
+  }, []);
+
+  const fetchAllDocuments = async () => {
+    try {
+      setIsLoading(true);
+      const response = await AllDocumentsApi();
+      
+      if (!response.data.success) {
+        console.error(`Error fetching documents: ${response.data.message}`);
+        return;
+      }
+      
+      const formattedDocuments = response.data.documents.map((doc: DocumentTypeFromS) => {
+        // Create properly formatted members array
+        const membersList = doc.members.map(member => ({
+          name: member.username,
+          profilePicture: member.profilepicture || ""
+        }));
+        
+        return {
+          id: doc._id,
+          title: doc.name,
+          updatedAt: doc.updatedAt,
+          members: membersList
+        };
+      });
+      
+      setDocuments(formattedDocuments);
+    } catch (error) {
+      console.error("Failed to fetch documents:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleConfirmDelete = (id: number | string) => {
     setDocumentToDelete(id);
     setIsConfirmDeleteOpen(true);
-  }
+  };
 
   const handleCancelDelete = () => {
     setIsConfirmDeleteOpen(false);
@@ -59,7 +90,7 @@ const DocumentList: React.FC = () => {
     }
   };
 
-  const onEdit = (id: number) => {
+  const onEdit = (id: number | string) => {
     console.log(`Edit document with ID: ${id}`);
   };
 
@@ -77,16 +108,38 @@ const DocumentList: React.FC = () => {
     setNewMembers(newMembers.filter((_, i) => i !== index));
   };
 
-  const handleCreateDocument = () => {
-    if (newDocumentTitle.trim()) {
-      const newDocument: Document = {
-        id: documents.length > 0 ? Math.max(...documents.map(doc => doc.id)) + 1 : 1,
-        title: newDocumentTitle.trim(),
-        updatedAt: new Date().toISOString(),
-        members: newMembers.length > 0 ? newMembers : [{ name: "Current User", profilePicture: "" }],
+  const handleCreateDocument = async () => {
+    try {
+      const response = await CreateDocumentApi(newDocumentTitle);
+      
+      if (response.status !== 201) {
+        console.error(response.data.message);
+        alert(response.data.message);
+        return;
+      }
+      
+      const newDocumentToSave = {
+        id: response.data.document.id,
+        title: response.data.document.name,
+        updatedAt: response.data.document.updated_at,
+        members: [
+          {
+            name: username,
+            profilePicture: url || "",
+          },
+        ],
       };
-      setDocuments([...documents, newDocument]);
+      
+      // Update state using functional update to ensure we're working with the latest state
+      setDocuments(prevDocuments => [...prevDocuments, newDocumentToSave]);
       handleCloseCreateDialog();
+      
+      // Refresh the document list to ensure we have the latest data
+      fetchAllDocuments();
+      
+    } catch (error) {
+      console.error("Failed to create document:", error);
+      alert("Failed to create document. Please try again.");
     }
   };
 
@@ -102,16 +155,24 @@ const DocumentList: React.FC = () => {
       <div className="space-y-4">
         <h1 className="text-2xl font-bold mb-6">Documents</h1>
 
-        {documents.length === 0 ? (
+        {isLoading ? (
+          <div className="text-center py-8">Loading documents...</div>
+        ) : documents.length === 0 ? (
           <p>No documents found.</p>
         ) : (
           documents.map((document) => (
-            <div key={document.id} className="bg-white p-4 rounded-lg shadow-md">
+            <div key={document.id}  className="bg-white p-4 rounded-lg shadow-md">
               <div className="flex items-center justify-between">
                 <h2 className="text-xl font-bold">{document.title}</h2>
                 <div className="flex space-x-2">
                   <button
-                    onClick={() => onEdit(document.id)}
+                    onClick = {
+                      ()=>{
+                        console.log(`Button clicked `)
+                        navigate(`/document/${document.id}`)
+        
+                      }
+                    }
                     className="bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600"
                   >
                     Edit
@@ -128,25 +189,29 @@ const DocumentList: React.FC = () => {
               <div className="mt-2">
                 <strong>Members:</strong>
                 <div className="flex space-x-2 ml-2">
-                  {document.members.map((member, index) => (
-                    <div key={index} className="relative group text-center">
-                      <img
-                        src={member.profilePicture || "default-avatar.png"}
-                        alt={member.name}
-                        className="w-10 h-10 rounded-full border-2 border-white"
-                      />
-                      <div className="mt-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <span className="text-xs text-gray-700">
-                          {member.name}
-                        </span>
+                  {document.members && document.members.length > 0 ? (
+                    document.members.map((member, index) => (
+                      <div key={index} className="relative group text-center">
+                        <img
+                          src={member.profilePicture || "default-avatar.png"}
+                          alt={member.name}
+                          className="w-10 h-10 rounded-full border-2 border-white"
+                        />
+                        <div className="mt-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <span className="text-xs text-gray-700">
+                            {member.name}
+                          </span>
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    ))
+                  ) : (
+                    <span className="text-gray-500">No members</span>
+                  )}
                 </div>
               </div>
 
               <div className="mt-2 text-sm text-gray-500">
-                <p>{new Date(document.updatedAt).toLocaleDateString()}</p>
+                <p>{document.updatedAt ? new Date(document.updatedAt).toLocaleDateString() : "No date"}</p>
               </div>
             </div>
           ))
@@ -168,7 +233,7 @@ const DocumentList: React.FC = () => {
           <div className="bg-white rounded-lg shadow-xl w-full max-w-md">
             <div className="p-6">
               <h3 className="text-xl font-semibold mb-4">Create New Document</h3>
-              
+
               {/* Document Title Input */}
               <div className="mb-4">
                 <label className="block text-sm font-medium text-gray-700 mb-1">
