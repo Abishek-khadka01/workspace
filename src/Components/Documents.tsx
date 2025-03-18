@@ -28,10 +28,11 @@ const DocumentList: React.FC = () => {
   const [newMemberName, setNewMemberName] = useState("");
   // navigate
 
+
   const navigate = useNavigate()
   // Use the store directly as a hook
   const { username, url } = useAuthStore();
-
+  const setLoginFalse = useAuthStore((state) => state.setLoginFalse);
   // Fetch all documents when component mounts
   useEffect(() => {
     fetchAllDocuments();
@@ -41,11 +42,19 @@ const DocumentList: React.FC = () => {
     try {
       setIsLoading(true);
       const response = await AllDocumentsApi();
+      console.log("dhfgdhfg", response.data.documents)
       
+      if(response.status===401){
+        alert(`The user is not logged in `)
+        setLoginFalse()
+        navigate("/")
+        
+      }
       if (!response.data.success) {
         console.error(`Error fetching documents: ${response.data.message}`);
         return;
       }
+     
       
       const formattedDocuments = response.data.documents.map((doc: DocumentTypeFromS) => {
         // Create properly formatted members array
@@ -63,6 +72,7 @@ const DocumentList: React.FC = () => {
       });
       
       setDocuments(formattedDocuments);
+      console.log(formattedDocuments)
     } catch (error) {
       console.error("Failed to fetch documents:", error);
     } finally {
