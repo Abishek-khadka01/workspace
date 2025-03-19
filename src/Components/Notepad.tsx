@@ -1,4 +1,4 @@
-import { KeyboardEventHandler, useEffect, useState } from "react";
+import {  useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import useAuthStore from "../functions/zustand";
 import { SocketSingleton } from "../sockets/socket";
@@ -58,13 +58,14 @@ const JoinRequestNotification: React.FC<{
 const NotePad: React.FC = () => {
   const [text, setText] = useState<string>("");
   const [isNavOpen, setIsNavOpen] = useState<boolean>(false);
-  const [isDocumentOpen, setIsDocumentOpen] = useState<boolean>(true);
+
   const [lastEditor, setLastEditor] = useState<Member | null>(null);
   const [typingTimeout, setTypingTimeout] = useState<NodeJS.Timeout | null>(null);
   const [fileName, setFileName] = useState<string>("Untitled Document");
   const [joinRequest, setJoinRequest] = useState<JoinRequest | null>(null);
   const { id: userId } = useAuthStore.getState(); // Assuming this gets the current user's ID
   const { id: idDocument } = useParams(); // Get document ID from URL params
+  
   const navigate = useNavigate();
   const {url } = useAuthStore()
 
@@ -82,10 +83,22 @@ const NotePad: React.FC = () => {
       console.log(`The user is connected successfully `, UserSocket.id);
     });
 
+
+    UserSocket.on("request-to-join-document", ({from ,user ,  message})=>{
+        setJoinRequest({
+          userId: user._id,
+          username: user.username,
+          profilePicture: user.profilepicture
+        })
+        console.log(user, from , message)
+
+      
+    })
+
     UserSocket.on("update-text-event", ({ id , from, message, DocumentID, profile, name }) => {
       console.log(DocumentID===idDocument , DocumentID, idDocument,"fjghjfjgh")
       if(DocumentID===idDocument) {
-        console.log(`The update-text-event is called by $${from}`);
+        console.log(`The update-text-event is called by ${from}`);
         setText(message);
         setLastEditor({
           id,
@@ -107,27 +120,38 @@ const NotePad: React.FC = () => {
       setJoinRequest(request);
     });
 
-    // Handle document closure
-    UserSocket.on("endDocument", (message: string) => {
-      console.log(message);
-      alert(message);
-      navigate("/dashboard");
-    });
 
+
+      UserSocket.on("accepted_request", ({message}) => {
+        alert(message)
+      })
+
+      UserSocket.on("rejected_request", ()=>{
+        alert(`You are not accepted in the document`)
+        navigate("/dashboard")
+      })
+
+      UserSocket.on("error", ({message})=>{
+      alert(`Error, ${message}`)
+      
+      })
 
 
     // Cleanup socket listeners on unmount
     return () => {
       UserSocket.off("update-members");
       UserSocket.off("join-request");
-      UserSocket.off("endDocument");
+      
+      UserSocket.off("accepted_request");
+      UserSocket.off("rejected_request");
+      UserSocket.disconnect()
     };
   }, [UserSocket, navigate]);
 
   useEffect(() => {
     (async () => 
      await HandleInitialCall())();
-  }, [idDocument, userId]);
+  }, []);
 
 
   
@@ -138,11 +162,8 @@ const NotePad: React.FC = () => {
         return;
       }
 
-      const documentDetails = await FindDocumentByid(idDocument);
-      if (!documentDetails.data.success) {
-        console.log("Error in finding the document details");
-        console.error(documentDetails.data.message);
-      } else {
+      const documentDetails = await  FindDocumentByid(idDocument);
+      
         
         console.table(documentDetails.data.message)
         setFileName(documentDetails.data.message.name);
@@ -159,13 +180,14 @@ const NotePad: React.FC = () => {
         })
         setMembers(OnlineMembers)
         
-      }
+      
 
 
 
     } catch (error) {
+      alert(`Cannot acess the resource `)
       console.log(error)
-      alert(error)
+      navigate("/dashboard")
     }
 
 
@@ -209,6 +231,7 @@ const NotePad: React.FC = () => {
         documentID: idDocument,
       });
       setJoinRequest(null);
+     
     }
   };
 
@@ -224,12 +247,10 @@ const NotePad: React.FC = () => {
 
   const handleCloseDocument = () => {
     if (text.trim() !== "" && window.confirm("Do you want to save before closing?")) {
-      // Save logic can go here
-      // UserSocket?.emit("save_document", { text, fileName, idDocument: idDocument });
-      // alert("Saving file...");
-    }
-    setIsDocumentOpen(false);
+      
+    // setIsDocumentOpen(false);
   };
+}
 
   const handleSaveFile = async () => {
    
@@ -249,6 +270,7 @@ const NotePad: React.FC = () => {
     
        try {
         console.log(idDocument, text)
+        
         const response = await DocumentContentUpdate(idDocument as string , text)
         if(!response.data.success){
         alert(`Updated the document and saved `)
@@ -258,25 +280,12 @@ const NotePad: React.FC = () => {
         }
        } catch (error) {
         console.log(error)
+        alert(`Error occured `)
        }
-    ``
+    
   }
 
-  if (!isDocumentOpen) {
-    return (
-      <div className="h-screen flex items-center justify-center bg-gray-50">
-        <div className="text-center">
-          <h2 className="text-xl font-semibold mb-4">Document Closed</h2>
-          <button
-            onClick={() => setIsDocumentOpen(true)}
-            className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
-          >
-            Open New Document
-          </button>
-        </div>
-      </div>
-    );
-  }
+  
 
   return (
     <div className="flex h-screen flex-col">
@@ -336,6 +345,7 @@ const NotePad: React.FC = () => {
               <textarea
                 className="w-full h-full outline-none resize-none"
                 value={text}
+                
                 onChange={handleTextChange}
                 
                 placeholder="Start typing..."
@@ -376,6 +386,7 @@ const NotePad: React.FC = () => {
       </div>
 
       {joinRequest && (
+        
         <JoinRequestNotification
           request={joinRequest}
           onAccept={handleAcceptJoinRequest}
@@ -384,6 +395,7 @@ const NotePad: React.FC = () => {
       )}
     </div>
   );
-};
+}
+
 
 export default NotePad;

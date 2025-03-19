@@ -1,7 +1,7 @@
 import axios from "axios";
 
 const FindDocumentByid = async (id: string) => {
-    return await axios.get(`http://localhost:4000/api/v1/documents/find/${id}`, {withCredentials: true} );
+    return  axios.get(`http://localhost:4000/api/v1/documents/find/${id}`, {withCredentials: true} );
 };
 
 
@@ -30,4 +30,12 @@ const DocumentContentUpdate = async (documentID : string ,message : string )=>{
     })
 }
 
-export {FindDocumentByid, AllDocumentsApi, CreateDocumentApi, DocumentContentUpdate}
+
+
+const DeleteDocument = async (documentID : string )=>{
+    return await axios.delete(`http://localhost:4000/api/v1/documents/delete-document/${documentID}`, {
+        withCredentials : true
+})
+}
+
+export {FindDocumentByid, AllDocumentsApi, CreateDocumentApi, DocumentContentUpdate, DeleteDocument}

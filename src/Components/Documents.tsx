@@ -3,18 +3,12 @@ import { AllDocumentsApi, CreateDocumentApi } from "../Api/Documents";
 import useAuthStore from "../functions/zustand";
 import { DocumentTypeFromS } from "../types/document.types";
 import { useNavigate } from "react-router-dom";
-
-
+import { DeleteDocument } from "../Api/Documents";
 type Document = {
   id: number | string;
   title: string;
   updatedAt: string;
   members: { name: string; profilePicture: string }[];
-};
-
-type NewMember = {
-  name: string;
-  profilePicture: string;
 };
 
 const DocumentList: React.FC = () => {
@@ -24,45 +18,40 @@ const DocumentList: React.FC = () => {
   const [documentToDelete, setDocumentToDelete] = useState<number | string | null>(null);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [newDocumentTitle, setNewDocumentTitle] = useState("");
-  const [newMembers, setNewMembers] = useState<NewMember[]>([]);
-  const [newMemberName, setNewMemberName] = useState("");
-  // navigate
 
-
-  const navigate = useNavigate()
-  // Use the store directly as a hook
+  const navigate = useNavigate();
   const { username, url } = useAuthStore();
   const setLoginFalse = useAuthStore((state) => state.setLoginFalse);
-  // Fetch all documents when component mounts
+
   useEffect(() => {
     fetchAllDocuments();
   }, []);
 
   const fetchAllDocuments = async () => {
     try {
+      console.log(`Fetch documents running `)
       setIsLoading(true);
       const response = await AllDocumentsApi();
-      console.log("dhfgdhfg", response.data.documents)
       
-      if(response.status===401){
-        alert(`The user is not logged in `)
-        setLoginFalse()
-        navigate("/")
-        
+      if (response.status === 401) {
+        alert(`The user is not logged in`);
+        setLoginFalse();
+        navigate("/");
+        return;
       }
+      
       if (!response.data.success) {
         console.error(`Error fetching documents: ${response.data.message}`);
         return;
       }
-     
-      
+
       const formattedDocuments = response.data.documents.map((doc: DocumentTypeFromS) => {
         // Create properly formatted members array
         const membersList = doc.members.map(member => ({
           name: member.username,
           profilePicture: member.profilepicture || ""
         }));
-        
+
         return {
           id: doc._id,
           title: doc.name,
@@ -70,9 +59,8 @@ const DocumentList: React.FC = () => {
           members: membersList
         };
       });
-      
+
       setDocuments(formattedDocuments);
-      console.log(formattedDocuments)
     } catch (error) {
       console.error("Failed to fetch documents:", error);
     } finally {
@@ -90,44 +78,43 @@ const DocumentList: React.FC = () => {
     setDocumentToDelete(null);
   };
 
-  const handleDelete = () => {
+  const handleDelete =async  () => {
     if (documentToDelete !== null) {
-      setDocuments((prevDocs) =>
-        prevDocs.filter((doc) => doc.id !== documentToDelete)
-      );
-      setIsConfirmDeleteOpen(false);
-      setDocumentToDelete(null);
+      try {
+        console.log(documentToDelete)
+        const response = await  DeleteDocument(documentToDelete as string); 
+        if (!response.data.success) {
+          alert(`Document was not deleted and was saved.`);
+        } else {
+          alert(`Document is deleted and saved.`);
+          setDocuments((prevDocs) =>
+            prevDocs.filter((doc) => doc.id !== documentToDelete)
+          );
+          setIsConfirmDeleteOpen(false);
+          setDocumentToDelete(null);
+        }
+      } catch (error) {
+        alert(`Error in deleting the document: ${error}`);
+      } 
     }
   };
+  
 
   const onEdit = (id: number | string) => {
     console.log(`Edit document with ID: ${id}`);
-  };
-
-  const handleAddMember = () => {
-    if (newMemberName.trim()) {
-      setNewMembers([
-        ...newMembers,
-        { name: newMemberName.trim(), profilePicture: "" },
-      ]);
-      setNewMemberName("");
-    }
-  };
-
-  const handleRemoveMember = (index: number) => {
-    setNewMembers(newMembers.filter((_, i) => i !== index));
+    navigate(`/document/${id}`);
   };
 
   const handleCreateDocument = async () => {
     try {
       const response = await CreateDocumentApi(newDocumentTitle);
-      
-      if (response.status !== 201) {
+
+      if (!response.data.success) {
         console.error(response.data.message);
         alert(response.data.message);
         return;
       }
-      
+
       const newDocumentToSave = {
         id: response.data.document.id,
         title: response.data.document.name,
@@ -139,14 +126,13 @@ const DocumentList: React.FC = () => {
           },
         ],
       };
-      
+
       // Update state using functional update to ensure we're working with the latest state
       setDocuments(prevDocuments => [...prevDocuments, newDocumentToSave]);
       handleCloseCreateDialog();
-      
       // Refresh the document list to ensure we have the latest data
       fetchAllDocuments();
-      
+
     } catch (error) {
       console.error("Failed to create document:", error);
       alert("Failed to create document. Please try again.");
@@ -156,8 +142,6 @@ const DocumentList: React.FC = () => {
   const handleCloseCreateDialog = () => {
     setIsCreateDialogOpen(false);
     setNewDocumentTitle("");
-    setNewMembers([]);
-    setNewMemberName("");
   };
 
   return (
@@ -171,18 +155,12 @@ const DocumentList: React.FC = () => {
           <p>No documents found.</p>
         ) : (
           documents.map((document) => (
-            <div key={document.id}  className="bg-white p-4 rounded-lg shadow-md">
+            <div key={document.id} className="bg-white p-4 rounded-lg shadow-md">
               <div className="flex items-center justify-between">
                 <h2 className="text-xl font-bold">{document.title}</h2>
                 <div className="flex space-x-2">
                   <button
-                    onClick = {
-                      ()=>{
-                        console.log(`Button clicked `)
-                        navigate(`/document/${document.id}`)
-        
-                      }
-                    }
+                    onClick={() => onEdit(document.id)}
                     className="bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600"
                   >
                     Edit
@@ -256,47 +234,6 @@ const DocumentList: React.FC = () => {
                   placeholder="Enter document title"
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
-              </div>
-
-              {/* Members Section */}
-              <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Members
-                </label>
-                <div className="flex space-x-2">
-                  <input
-                    type="text"
-                    value={newMemberName}
-                    onChange={(e) => setNewMemberName(e.target.value)}
-                    onKeyPress={(e) => e.key === 'Enter' && handleAddMember()}
-                    placeholder="Enter member name"
-                    className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                  <button
-                    onClick={handleAddMember}
-                    className="bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600 transition-colors"
-                  >
-                    Add
-                  </button>
-                </div>
-
-                {/* Members List */}
-                <div className="mt-2 space-y-2">
-                  {newMembers.map((member, index) => (
-                    <div
-                      key={index}
-                      className="flex items-center justify-between bg-gray-50 p-2 rounded-md"
-                    >
-                      <span className="text-gray-700">{member.name}</span>
-                      <button
-                        onClick={() => handleRemoveMember(index)}
-                        className="text-red-500 hover:text-red-700 transition-colors"
-                      >
-                        Remove
-                      </button>
-                    </div>
-                  ))}
-                </div>
               </div>
 
               {/* Dialog Actions */}
