@@ -169,7 +169,7 @@ const NotePad: React.FC = () => {
         setFileName(documentDetails.data.message.name);
         setText(documentDetails.data.message.content);
         SocketSingleton.connectSocket(userId as string, idDocument); // Pass both userId and idDocument
-        const OnlineMembers = documentDetails.data.message.members.map((docs: TypeMembers)=>{
+        const OnlineMembers = documentDetails.data.members.map((docs: TypeMembers)=>{
            
           return {id : docs._id,
             name : docs.username,
@@ -178,9 +178,9 @@ const NotePad: React.FC = () => {
           }
 
         })
-        setMembers(OnlineMembers)
+        setMembers(OnlineMembers), 
         
-      
+      console.log(OnlineMembers, "xjfgdsjgldgj")
 
 
 
@@ -209,7 +209,7 @@ const NotePad: React.FC = () => {
         message: newText,
         DocumentID : idDocument,
       });
-    }, 2000);
+    }, 1000);
 
     
 
@@ -247,8 +247,10 @@ const NotePad: React.FC = () => {
 
   const handleCloseDocument = () => {
     if (text.trim() !== "" && window.confirm("Do you want to save before closing?")) {
+      handleSaveFile();
       
-    // setIsDocumentOpen(false);
+      navigate("/dashboard")
+    
   };
 }
 
@@ -272,12 +274,9 @@ const NotePad: React.FC = () => {
         console.log(idDocument, text)
         
         const response = await DocumentContentUpdate(idDocument as string , text)
-        if(!response.data.success){
-        alert(`Updated the document and saved `)
-        }else{
-          console.log(`Error in saving the file`)
-          alert(`Error in saving the file `)
-        }
+       
+          alert(`File saved, ${response.data.message}`)
+        
        } catch (error) {
         console.log(error)
         alert(`Error occured `)
