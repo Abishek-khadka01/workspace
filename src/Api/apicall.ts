@@ -1,9 +1,8 @@
 import axios from "axios"
-import {LOGIN, LOGOUT, REGISTER} from "../constants/apiconstants.js"
-const BACKEND_URL = `http://localhost:4000/api/v1`
-console.log(BACKEND_URL)
+
+
 const UserRegister =async  (username : string, email: string , password : string)=>{
-    return  await axios.post(`${BACKEND_URL}/users/${REGISTER}`,{
+    return  await axios.post(import.meta.env.VITE_USERS_REGISTER,{
             username,
             email, 
             password
@@ -15,7 +14,7 @@ const UserRegister =async  (username : string, email: string , password : string
 
 
 const UserLogin = async ( email : string , password : string)=>{
-    return await axios.post(`${BACKEND_URL}/users/${LOGIN}`, {
+    return await axios.post(import.meta.env.VITE_USERS_LOGIN, {
         email ,
         password 
     }, {
@@ -26,12 +25,12 @@ const UserLogin = async ( email : string , password : string)=>{
 
 
 const UserLogOut = async ()=>{
-    return await axios.put(`${BACKEND_URL}/users/${LOGOUT}`, {}, {withCredentials: true})
+    return await axios.put( import.meta.env.VITE_USERS_LOGOUT, {}, {withCredentials: true})
 }
 
 
 const FindUser = async ()=>{
-    return await axios.get(`${BACKEND_URL}/users/profile-details`, {
+    return await axios.get(import.meta.env.VITE_USERS_DETAILS, {
         withCredentials : true
     })
 }
@@ -41,7 +40,7 @@ const UpdateProfile = (filepath : File)=>{
     console.log(filepath)
     const newForm : FormData= new FormData()
     newForm.append("profile",filepath)
-    return axios.post(`${BACKEND_URL}/users/add-profile`, newForm, {
+    return axios.post(import.meta.env.VITE_USERS_PROFILE, newForm, {
         headers:{
             "Content-Type":"multipart/form-data"
         },
